@@ -1,6 +1,7 @@
 import type { Message, Attachment } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:2024'
+const TIMEOUT_MS = 10000 // 10秒超时
 
 export interface CreateThreadResponse {
   thread_id: string
@@ -13,15 +14,45 @@ export interface StreamRunParams {
   attachments?: Attachment[]
 }
 
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeout: number = TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    })
+    return response
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+export async function checkApiConnection(): Promise<boolean> {
+  try {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/threads`, {
+      method: 'GET',
+    }, 5000)
+    return response.ok || response.status === 405 // 405 也表示服务在线
+  } catch {
+    return false
+  }
+}
+
 export async function createThread(): Promise<string> {
-  const response = await fetch(`${API_BASE_URL}/threads`, {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/threads`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({}),
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to create thread: ${response.statusText}`)
+    throw new Error(`创建对话失败: ${response.status} ${response.statusText}`)
   }
 
   const data: CreateThreadResponse = await response.json()
@@ -52,7 +83,7 @@ export async function streamRun(
   }
 
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${API_BASE_URL}/threads/${threadId}/runs/stream`,
       {
         method: 'POST',
@@ -62,16 +93,20 @@ export async function streamRun(
           input,
           stream_mode: ['messages'],
         }),
-      }
+      },
+      30000 // 流式请求允许更长超时
     )
 
     if (!response.ok) {
-      throw new Error(`Stream request failed: ${response.statusText}`)
+      if (response.status === 0) {
+        throw new Error('无法连接到后端服务，请检查服务是否启动')
+      }
+      throw new Error(`请求失败: ${response.status} ${response.statusText}`)
     }
 
     const reader = response.body?.getReader()
     if (!reader) {
-      throw new Error('No response body')
+      throw new Error('无法读取响应内容')
     }
 
     const decoder = new TextDecoder()
@@ -107,7 +142,15 @@ export async function streamRun(
 
     onComplete()
   } catch (error) {
-    onError(error instanceof Error ? error : new Error(String(error)))
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        onError(new Error('请求超时，请检查后端服务是否正常运行'))
+      } else {
+        onError(error)
+      }
+    } else {
+      onError(new Error(String(error)))
+    }
   }
 }
 
@@ -143,7 +186,6 @@ export async function readFileContent(file: File): Promise<string> {
       if (typeof result === 'string') {
         resolve(result)
       } else {
-        // Handle binary files as base64
         resolve(btoa(String.fromCharCode(...new Uint8Array(result as ArrayBuffer))))
       }
     }

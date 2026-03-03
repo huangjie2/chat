@@ -88,9 +88,11 @@ export const useChatStore = create<ChatState>()(
             if (t.id !== threadId) return t
             return {
               ...t,
-              messages: t.messages.map((m) =>
-                m.id === messageId ? { ...m, content } : m
-              ),
+              messages: t.messages.map((m) => {
+                if (m.id !== messageId) return m
+                const newContent = typeof content === 'function' ? content(m.content) : content
+                return { ...m, content: newContent }
+              }),
               updatedAt: Date.now(),
             }
           }),

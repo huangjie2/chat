@@ -44,7 +44,7 @@ export interface ChatState {
   setCurrentThread: (id: string | null) => void
   setMode: (mode: ChatMode) => void
   addMessage: (threadId: string, message: Message) => void
-  updateMessage: (threadId: string, messageId: string, content: string) => void
+  updateMessage: (threadId: string, messageId: string, content: string | ((prev: string) => string)) => void
   setIsLoading: (loading: boolean) => void
 }
 

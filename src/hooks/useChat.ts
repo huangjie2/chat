@@ -1,6 +1,6 @@
-import { useCallback } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useChatStore } from '@/store/chatStore'
-import { streamRun, createThread as createApiThread } from '@/lib/api'
+import { streamRun, createThread as createApiThread, checkApiConnection } from '@/lib/api'
 import type { Message, Attachment } from '@/types'
 
 const generateId = () => Math.random().toString(36).substring(2, 15)
@@ -17,7 +17,16 @@ export function useChat() {
     setIsLoading,
   } = useChatStore()
 
+  const [isApiConnected, setIsApiConnected] = useState<boolean | null>(null)
+
   const currentThread = threads.find((t) => t.id === currentThreadId)
+
+  // 检查 API 连接状态
+  useEffect(() => {
+    checkApiConnection().then((connected) => {
+      setIsApiConnected(connected)
+    })
+  }, [])
 
   const sendMessage = useCallback(
     async (content: string, attachments?: Attachment[]) => {
@@ -47,13 +56,27 @@ export function useChat() {
       addMessage(threadId, assistantMessage)
       setIsLoading(true)
 
+      // 检查连接状态
+      const connected = await checkApiConnection()
+      if (!connected) {
+        updateMessage(
+          threadId,
+          assistantMessage.id,
+          '⚠️ 无法连接到后端服务\n\n请确保 LangGraph 服务已启动，或检查 VITE_API_URL 配置是否正确。'
+        )
+        setIsLoading(false)
+        setIsApiConnected(false)
+        return
+      }
+
+      setIsApiConnected(true)
+
       try {
         let apiThreadId: string
 
         try {
           apiThreadId = await createApiThread()
         } catch {
-          // If API thread creation fails, use local thread ID
           apiThreadId = threadId
         }
 
@@ -65,15 +88,16 @@ export function useChat() {
             attachments,
           },
           (chunk) => {
-            updateMessage(threadId!, assistantMessage.id, chunk)
+            updateMessage(threadId!, assistantMessage.id, (prev) => prev + chunk)
           },
           (error) => {
             console.error('Stream error:', error)
             updateMessage(
               threadId!,
               assistantMessage.id,
-              `错误: ${error.message}`
+              `❌ ${error.message}`
             )
+            setIsLoading(false)
           },
           () => {
             setIsLoading(false)
@@ -84,7 +108,7 @@ export function useChat() {
         updateMessage(
           threadId,
           assistantMessage.id,
-          `错误: ${error instanceof Error ? error.message : '未知错误'}`
+          `❌ ${error instanceof Error ? error.message : '未知错误'}`
         )
         setIsLoading(false)
       }
@@ -97,5 +121,6 @@ export function useChat() {
     sendMessage,
     isLoading,
     mode,
+    isApiConnected,
   }
 }
