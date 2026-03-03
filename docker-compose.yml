@@ -1,0 +1,20 @@
+services:
+  chat:
+    build: .
+    ports:
+      - "3000:80"
+    environment:
+      - API_URL=http://langgraph:2024
+    depends_on:
+      - langgraph
+    restart: unless-stopped
+
+  langgraph:
+    image: your-langgraph-image:latest
+    ports:
+      - "2024:2024"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
