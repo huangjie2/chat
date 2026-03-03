@@ -56,24 +56,23 @@ export function useChat() {
       addMessage(threadId, assistantMessage)
       setIsLoading(true)
 
-      // 检查连接状态
-      const connected = await checkApiConnection()
-      if (!connected) {
-        updateMessage(
-          threadId,
-          assistantMessage.id,
-          '⚠️ 无法连接到后端服务\n\n请确保 LangGraph 服务已启动，或检查 VITE_API_URL 配置是否正确。'
-        )
-        setIsLoading(false)
-        setIsApiConnected(false)
-        return
-      }
-
-      setIsApiConnected(true)
-
       try {
-        let apiThreadId: string
+        // 检查连接状态
+        const connected = await checkApiConnection()
+        if (!connected) {
+          updateMessage(
+            threadId,
+            assistantMessage.id,
+            '⚠️ 无法连接到后端服务\n\n请确保 LangGraph 服务已启动，或检查 VITE_API_URL 配置是否正确。'
+          )
+          setIsApiConnected(false)
+          setIsLoading(false)
+          return
+        }
 
+        setIsApiConnected(true)
+
+        let apiThreadId: string
         try {
           apiThreadId = await createApiThread()
         } catch {
@@ -92,12 +91,7 @@ export function useChat() {
           },
           (error) => {
             console.error('Stream error:', error)
-            updateMessage(
-              threadId!,
-              assistantMessage.id,
-              `❌ ${error.message}`
-            )
-            setIsLoading(false)
+            updateMessage(threadId!, assistantMessage.id, `❌ ${error.message}`)
           },
           () => {
             setIsLoading(false)

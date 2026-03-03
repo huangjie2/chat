@@ -151,6 +151,7 @@ export async function streamRun(
     } else {
       onError(new Error(String(error)))
     }
+    onComplete() // 确保 loading 状态被重置
   }
 }
 
