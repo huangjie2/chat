@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BookOpen, Bug, Rocket, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,12 +33,18 @@ const modes: { value: ChatMode; label: string; icon: typeof BookOpen; descriptio
 
 export function ModeSelector() {
   const { mode, setMode } = useChatStore()
+  const [open, setOpen] = useState(false)
 
   const currentMode = modes.find((m) => m.value === mode)!
   const Icon = currentMode.icon
 
+  const handleSelect = (value: ChatMode) => {
+    setMode(value)
+    setOpen(false)
+  }
+
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="gap-2">
           <Icon className="h-4 w-4" />
@@ -51,7 +58,7 @@ export function ModeSelector() {
           return (
             <DropdownMenuItem
               key={m.value}
-              onClick={() => setMode(m.value)}
+              onSelect={() => handleSelect(m.value)}
               className="flex items-center gap-2"
             >
               <MIcon className="h-4 w-4" />
