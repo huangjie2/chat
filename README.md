@@ -66,3 +66,53 @@ src/
 
 - `POST /threads` - 创建对话线程
 - `POST /threads/:id/runs/stream` - 流式对话响应
+
+## Docker 部署
+
+### 前置要求
+
+- Docker 和 Docker Compose 已安装
+- LangGraph 后端镜像（或修改 docker-compose.yml 使用外部服务）
+
+### 快速启动
+
+```bash
+# 1. 复制环境变量配置
+cp .env.example .env
+
+# 2. 编辑 .env 填入实际配置
+#    - VITE_API_URL: 后端 API 地址
+#    - OPENAI_API_KEY: OpenAI API 密钥（后端使用）
+
+# 3. 构建并启动
+docker-compose up -d --build
+
+# 4. 访问应用
+#    前端: http://localhost:3000
+#    后端: http://localhost:2024
+```
+
+### 常用命令
+
+```bash
+# 查看日志
+docker-compose logs -f
+
+# 停止服务
+docker-compose down
+
+# 重新构建
+docker-compose up -d --build
+```
+
+### 仅部署前端
+
+如果后端已单独部署，可以只运行前端容器：
+
+```bash
+# 构建镜像
+docker build -t chat-frontend .
+
+# 运行容器
+docker run -d -p 3000:80 -e API_URL=https://your-api-server.com chat-frontend
+```
