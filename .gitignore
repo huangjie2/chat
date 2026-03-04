@@ -3,3 +3,4 @@ dist
 *.tsbuildinfo
 AGENTS.md
 .env
+微信图片_*.jpg

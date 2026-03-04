@@ -52,7 +52,7 @@ export async function createThread(): Promise<string> {
   })
 
   if (!response.ok) {
-    throw new Error(`创建对话失败: ${response.status} ${response.statusText}`)
+    throw new Error(`Failed to create thread: ${response.status} ${response.statusText}`)
   }
 
   const data: CreateThreadResponse = await response.json()
@@ -61,12 +61,15 @@ export async function createThread(): Promise<string> {
 
 interface StreamMessage {
   content?: string
-  tool_calls?: Array<{
-    name?: string
-    args?: Record<string, unknown>
-  }>
   response_metadata?: {
     finish_reason?: string
+    tool_calls?: Array<{
+      type?: string
+      function?: {
+        name?: string
+        arguments?: string // JSON 字符串，需要解析
+      }
+    }>
   }
 }
 
@@ -96,6 +99,8 @@ export async function streamRun(
   // 用于追踪已显示的内容，避免重复
   let lastContentLength = 0
   let isCompleted = false
+  // 记录上一条工具调用，避免重复显示
+  let lastToolKey = ''
 
   try {
     const response = await fetchWithTimeout(
@@ -114,17 +119,18 @@ export async function streamRun(
 
     if (!response.ok) {
       if (response.status === 0) {
-        throw new Error('无法连接到后端服务，请检查服务是否启动')
+        throw new Error('Cannot connect to backend service. Please check if the service is running.')
       }
-      throw new Error(`请求失败: ${response.status} ${response.statusText}`)
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`)
     }
 
     const reader = response.body?.getReader()
     if (!reader) {
-      throw new Error('无法读取响应内容')
+      throw new Error('Cannot read response content')
     }
 
-    const decoder = new TextDecoder()
+    // 显式使用 UTF-8 解码器
+    const decoder = new TextDecoder('utf-8')
     let buffer = ''
 
     while (true) {
@@ -161,12 +167,28 @@ export async function streamRun(
             return
           }
 
-          // 处理 tool 调用
-          if (msg.tool_calls && msg.tool_calls.length > 0) {
-            for (const tool of msg.tool_calls) {
-              if (tool.name) {
-                const argsStr = tool.args ? JSON.stringify(tool.args, null, 2) : '{}'
-                onChunk(`\n🔧 **调用工具**: \`${tool.name}\`\n\`\`\`json\n${argsStr}\n\`\`\`\n`)
+          // 处理 tool 调用 - 在 response_metadata.tool_calls 中
+          const toolCalls = msg.response_metadata?.tool_calls
+          if (toolCalls && toolCalls.length > 0) {
+            for (const tc of toolCalls) {
+              const func = tc.function
+              if (func?.name) {
+                // arguments 是 JSON 字符串，需要解析
+                let argsObj = {}
+                try {
+                  if (func.arguments) {
+                    argsObj = JSON.parse(func.arguments)
+                  }
+                } catch {
+                  // 解析失败就用原始字符串
+                }
+                const toolKey = `${func.name}:${JSON.stringify(argsObj)}`
+                // 只比较和上一条是否相同
+                if (toolKey !== lastToolKey) {
+                  lastToolKey = toolKey
+                  const argsStr = JSON.stringify(argsObj, null, 2)
+                  onChunk(`\n🔧 **Tool**: \`${func.name}\`\n\`\`\`json\n${argsStr}\n\`\`\`\n`)
+                }
               }
             }
             continue
@@ -192,7 +214,7 @@ export async function streamRun(
   } catch (error) {
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        onError(new Error('请求超时，请检查后端服务是否正常运行'))
+        onError(new Error('Request timeout. Please check if backend service is running.'))
       } else {
         onError(error)
       }

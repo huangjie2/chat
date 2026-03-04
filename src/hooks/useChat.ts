@@ -63,7 +63,7 @@ export function useChat() {
           updateMessage(
             threadId,
             assistantMessage.id,
-            '⚠️ 无法连接到后端服务\n\n请确保 LangGraph 服务已启动，或检查 VITE_API_URL 配置是否正确。'
+            '[Error] Cannot connect to backend service.\n\nPlease ensure LangGraph service is running, or check VITE_API_URL configuration.'
           )
           setIsApiConnected(false)
           setIsLoading(false)
@@ -91,7 +91,7 @@ export function useChat() {
           },
           (error) => {
             console.error('Stream error:', error)
-            updateMessage(threadId!, assistantMessage.id, `❌ ${error.message}`)
+            updateMessage(threadId!, assistantMessage.id, `[Error] ${error.message}`)
           },
           () => {
             setIsLoading(false)
