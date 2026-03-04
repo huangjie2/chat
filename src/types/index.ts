@@ -46,6 +46,7 @@ export interface ChatState {
   addMessage: (threadId: string, message: Message) => void
   updateMessage: (threadId: string, messageId: string, content: string | ((prev: string) => string)) => void
   setIsLoading: (loading: boolean) => void
+  clearAll: () => void
 }
 
 export interface LangGraphThread {

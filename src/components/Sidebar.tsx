@@ -1,4 +1,4 @@
-import { MessageSquare, Plus, Trash2, BookOpen, Bug, Rocket } from 'lucide-react'
+import { MessageSquare, Plus, Trash2, BookOpen, Bug, Rocket, Trash } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
@@ -23,6 +23,7 @@ export function Sidebar({ isOpen }: SidebarProps) {
     createThread,
     deleteThread,
     setCurrentThread,
+    clearAll,
     mode,
   } = useChatStore()
 
@@ -130,13 +131,28 @@ export function Sidebar({ isOpen }: SidebarProps) {
 
       <Separator />
 
-      <div className="p-4">
+      <div className="p-4 space-y-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>当前模式:</span>
           <Badge variant="secondary" className={modeConfig[mode].color}>
             {modeConfig[mode].label}
           </Badge>
         </div>
+        {threads.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-muted-foreground hover:text-destructive"
+            onClick={() => {
+              if (confirm('确定要清除所有对话历史吗？')) {
+                clearAll()
+              }
+            }}
+          >
+            <Trash className="mr-2 h-4 w-4" />
+            清除所有历史
+          </Button>
+        )}
       </div>
     </aside>
   )

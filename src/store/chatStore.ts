@@ -102,6 +102,15 @@ export const useChatStore = create<ChatState>()(
       setIsLoading: (loading) => {
         set({ isLoading: loading })
       },
+
+      clearAll: () => {
+        set({
+          threads: [],
+          currentThreadId: null,
+          mode: 'qa',
+          isLoading: false,
+        })
+      },
     }),
     {
       name: 'chat-storage',
