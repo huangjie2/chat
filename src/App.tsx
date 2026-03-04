@@ -46,11 +46,11 @@ function App() {
   }, [messages.length])
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar isOpen={sidebarOpen} />
 
-      <main className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b px-4 py-3">
+      <main className="flex h-screen flex-1 flex-col overflow-hidden">
+        <header className="flex shrink-0 items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -75,7 +75,7 @@ function App() {
           <ModeSelector />
         </header>
 
-        <div className="relative flex-1">
+        <div className="relative min-h-0 flex-1 overflow-hidden">
           <ScrollArea ref={scrollAreaRef} className="h-full p-4">
             <div className="mx-auto max-w-3xl space-y-4">
               {messages.length === 0 ? (
