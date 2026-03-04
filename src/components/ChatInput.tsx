@@ -98,7 +98,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="输入消息... (Enter 发送, Shift+Enter 换行)"
+          placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
           className="min-h-[40px] max-h-[200px] resize-none"
           rows={1}
           disabled={isLoading}

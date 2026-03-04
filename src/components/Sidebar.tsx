@@ -7,9 +7,9 @@ import { useChatStore } from '@/store/chatStore'
 import type { ChatMode } from '@/types'
 
 const modeConfig: Record<ChatMode, { label: string; icon: typeof BookOpen; color: string }> = {
-  qa: { label: '项目问答', icon: BookOpen, color: 'bg-blue-500' },
-  debug: { label: '错误诊断', icon: Bug, color: 'bg-orange-500' },
-  'api-gen': { label: 'API 生成', icon: Rocket, color: 'bg-green-500' },
+  qa: { label: 'QA', icon: BookOpen, color: 'bg-blue-500' },
+  debug: { label: 'Debug', icon: Bug, color: 'bg-orange-500' },
+  'api-gen': { label: 'API Gen', icon: Rocket, color: 'bg-green-500' },
 }
 
 interface SidebarProps {
@@ -47,9 +47,9 @@ export function Sidebar({ isOpen }: SidebarProps) {
     yesterday.setDate(yesterday.getDate() - 1)
 
     if (date.toDateString() === today.toDateString()) {
-      return '今天'
+      return 'Today'
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return '昨天'
+      return 'Yesterday'
     }
     return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
   }
@@ -71,7 +71,7 @@ export function Sidebar({ isOpen }: SidebarProps) {
   return (
     <aside className="flex h-full w-64 flex-col border-r bg-muted/30">
       <div className="flex items-center justify-between p-4">
-        <h2 className="text-lg font-semibold">对话历史</h2>
+        <h2 className="text-lg font-semibold">History</h2>
         <Button variant="ghost" size="icon" onClick={handleNewThread}>
           <Plus className="h-4 w-4" />
         </Button>
@@ -123,7 +123,7 @@ export function Sidebar({ isOpen }: SidebarProps) {
 
           {threads.length === 0 && (
             <div className="py-8 text-center text-sm text-muted-foreground">
-              暂无对话记录
+              No conversations yet
             </div>
           )}
         </div>
@@ -133,7 +133,7 @@ export function Sidebar({ isOpen }: SidebarProps) {
 
       <div className="p-4 space-y-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>当前模式:</span>
+          <span>Current mode:</span>
           <Badge variant="secondary" className={modeConfig[mode].color}>
             {modeConfig[mode].label}
           </Badge>
@@ -144,13 +144,13 @@ export function Sidebar({ isOpen }: SidebarProps) {
             size="sm"
             className="w-full text-muted-foreground hover:text-destructive"
             onClick={() => {
-              if (confirm('确定要清除所有对话历史吗？')) {
+              if (confirm('Clear all chat history? This cannot be undone.')) {
                 clearAll()
               }
             }}
           >
             <Trash className="mr-2 h-4 w-4" />
-            清除所有历史
+            Clear All History
           </Button>
         )}
       </div>

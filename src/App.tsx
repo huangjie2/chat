@@ -80,13 +80,13 @@ function App() {
             <div className="mx-auto max-w-3xl space-y-4">
               {messages.length === 0 ? (
                 <div className="flex h-[60vh] flex-col items-center justify-center text-center">
-                  <h2 className="mb-2 text-2xl font-semibold">开始新对话</h2>
+                  <h2 className="mb-2 text-2xl font-semibold">Start New Chat</h2>
                   <p className="text-muted-foreground">
-                    选择模式并输入消息开始与 AI 对话
+                    Select a mode and type a message to start chatting with AI
                   </p>
                   {isApiConnected === false && (
                     <p className="mt-4 rounded-lg bg-destructive/10 px-4 py-2 text-sm text-destructive">
-                      后端服务未连接，请检查 LangGraph 服务是否启动
+                      Backend service not connected. Please check if LangGraph service is running.
                     </p>
                   )}
                 </div>

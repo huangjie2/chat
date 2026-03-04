@@ -13,21 +13,21 @@ import type { ChatMode } from '@/types'
 const modes: { value: ChatMode; label: string; icon: typeof BookOpen; description: string }[] = [
   {
     value: 'qa',
-    label: '项目问答',
+    label: 'QA',
     icon: BookOpen,
-    description: 'RAG 查询项目资料',
+    description: 'RAG query for project docs',
   },
   {
     value: 'debug',
-    label: '错误诊断',
+    label: 'Debug',
     icon: Bug,
-    description: '粘贴错误代码，AI 分析',
+    description: 'Paste error code for AI analysis',
   },
   {
     value: 'api-gen',
-    label: 'API 生成',
+    label: 'API Gen',
     icon: Rocket,
-    description: '上传 Sample + Spec 生成 API',
+    description: 'Upload Sample + Spec to generate API',
   },
 ]
 
