@@ -38,7 +38,7 @@ export async function checkApiConnection(): Promise<boolean> {
     const response = await fetchWithTimeout(`${API_BASE_URL}/threads`, {
       method: 'GET',
     }, 5000)
-    return response.ok || response.status === 405 // 405 也表示服务在线
+    return response.ok || response.status === 405
   } catch {
     return false
   }
@@ -57,6 +57,17 @@ export async function createThread(): Promise<string> {
 
   const data: CreateThreadResponse = await response.json()
   return data.thread_id
+}
+
+interface StreamMessage {
+  content?: string
+  tool_calls?: Array<{
+    name?: string
+    args?: Record<string, unknown>
+  }>
+  response_metadata?: {
+    finish_reason?: string
+  }
 }
 
 export async function streamRun(
@@ -82,6 +93,10 @@ export async function streamRun(
     })),
   }
 
+  // 用于追踪已显示的内容，避免重复
+  let lastContentLength = 0
+  let isCompleted = false
+
   try {
     const response = await fetchWithTimeout(
       `${API_BASE_URL}/threads/${threadId}/runs/stream`,
@@ -94,7 +109,7 @@ export async function streamRun(
           stream_mode: ['messages'],
         }),
       },
-      30000 // 流式请求允许更长超时
+      30000
     )
 
     if (!response.ok) {
@@ -121,26 +136,59 @@ export async function streamRun(
       buffer = lines.pop() || ''
 
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6)
-          if (data === '[DONE]') {
+        if (!line.startsWith('data: ')) continue
+
+        const data = line.slice(6)
+        if (data === '[DONE]') {
+          if (!isCompleted) {
+            onComplete()
+          }
+          return
+        }
+
+        try {
+          const parsed: StreamMessage[] = JSON.parse(data)
+
+          if (!Array.isArray(parsed) || parsed.length === 0) continue
+
+          const msg = parsed[0]
+          if (!msg) continue
+
+          // 检查结束标志
+          if (msg.response_metadata?.finish_reason === 'stop') {
+            isCompleted = true
             onComplete()
             return
           }
-          try {
-            const parsed = JSON.parse(data)
-            const content = extractContent(parsed)
-            if (content) {
-              onChunk(content)
+
+          // 处理 tool 调用
+          if (msg.tool_calls && msg.tool_calls.length > 0) {
+            for (const tool of msg.tool_calls) {
+              if (tool.name) {
+                const argsStr = tool.args ? JSON.stringify(tool.args, null, 2) : '{}'
+                onChunk(`\n🔧 **调用工具**: \`${tool.name}\`\n\`\`\`json\n${argsStr}\n\`\`\`\n`)
+              }
             }
-          } catch {
-            // Skip invalid JSON
+            continue
           }
+
+          // 处理内容 - 只追加新增部分，避免重复
+          if (msg.content && typeof msg.content === 'string') {
+            const newContent = msg.content.slice(lastContentLength)
+            if (newContent) {
+              onChunk(newContent)
+              lastContentLength = msg.content.length
+            }
+          }
+        } catch {
+          // Skip invalid JSON
         }
       }
     }
 
-    onComplete()
+    if (!isCompleted) {
+      onComplete()
+    }
   } catch (error) {
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
@@ -151,32 +199,8 @@ export async function streamRun(
     } else {
       onError(new Error(String(error)))
     }
-    onComplete() // 确保 loading 状态被重置
+    onComplete()
   }
-}
-
-function extractContent(data: unknown): string | null {
-  if (typeof data !== 'object' || data === null) return null
-
-  const obj = data as Record<string, unknown>
-
-  // Try different response formats
-  if (typeof obj.content === 'string') return obj.content
-  if (obj.message && typeof obj.message === 'object') {
-    const msg = obj.message as Record<string, unknown>
-    if (typeof msg.content === 'string') return msg.content
-  }
-  if (obj.values && typeof obj.values === 'object') {
-    const values = obj.values as Record<string, unknown>
-    if (Array.isArray(values.messages)) {
-      const lastMessage = values.messages[values.messages.length - 1]
-      if (lastMessage && typeof lastMessage.content === 'string') {
-        return lastMessage.content
-      }
-    }
-  }
-
-  return null
 }
 
 export async function readFileContent(file: File): Promise<string> {
